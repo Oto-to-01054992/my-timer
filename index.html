@@ -352,18 +352,33 @@
       }
     }
 
-    // Web Speech API Synthesis
+    // Web Speech API Synthesis（最適化された speak 関数）
     function speak(text) {
       if (isMuted) return;
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         const uttr = new SpeechSynthesisUtterance(text);
         uttr.lang = 'ja-JP';
-        uttr.rate = 1.0;
-        uttr.pitch = 1.0;
-        uttr.volume = 1.0;
+        uttr.rate = 0.95;  // 明瞭で聞き取りやすいスピード
+        uttr.pitch = 1.15; // スマホスピーカーで抜けの良いやや高めのピッチ
+        uttr.volume = 1.0; // 音量最大
+
+        // 高音質ボイス（Kyoko, Otoya等）が利用可能であれば優先的に使用
+        const voices = window.speechSynthesis.getVoices();
+        const jaVoice = voices.find(v => v.lang.includes('ja') && (v.name.includes('Kyoko') || v.name.includes('Otoya') || v.name.includes('Enhanced')));
+        if (jaVoice) {
+          uttr.voice = jaVoice;
+        }
+
         window.speechSynthesis.speak(uttr);
       }
+    }
+
+    // 音声一覧の非同期読み込み対応
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
     }
 
     // Electronic Beep Alarm
@@ -416,7 +431,7 @@
       btnIcon.textContent = '⏸';
       btnText.textContent = '一時停止';
 
-      // 開始アナウンス
+      // 開始アナウンス（発声は「スタートー」のまま）
       if (remainingSeconds === totalSeconds) {
         speak('スタートー');
       }
@@ -463,7 +478,7 @@
       playAlarmSound();
       speak('おわりー');
       
-      // 終了時に自動的にリセット状態（初期時間）に戻す
+      // 終了時に自動的にリセット状態に戻す
       resetTimer();
     }
 
